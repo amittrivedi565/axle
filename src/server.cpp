@@ -5,10 +5,19 @@
 #include <unistd.h>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <fcntl.h>
 
 #define MAX_EVENTS 10
 #define BUFFER_SIZE 1024
+
+HttpServer::HttpServer(int port) {
+    port_ = port;
+}
+
+HttpServer::~HttpServer() {
+    std::cout << "server shutting down...\n";
+}
 
 /**
  * Creates a Simple HTTP Server.
@@ -62,20 +71,51 @@ void HttpServer::init_server(){
     std::cout << "server listening on port " << port_ << std::endl;
 }
 
+/**
+ *  Request body of incoming request, it will be in string form.
+    POST /api/users HTTP/1.1\r\n
+    Host: localhost:8080\r\n
+    Content-Type: application/json\r\n
+    Content-Length: 49\r\n
+    \r\n
+    {"name":"John Doe","email":"john@example.com"}
+*/
 void HttpServer::handle_req(int client_fd) {
     char buffer[BUFFER_SIZE];
     int valread = read(client_fd, buffer, BUFFER_SIZE - 1);
-    if (valread > 0) {
-        buffer[valread] = '\0';
-        std::cout << "received request:\n" << buffer << std::endl;
-
-        const char* response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!";
-        send(client_fd, response, strlen(response), 0);
+    
+    if (valread <= 0) {
+        close(client_fd);
+        return;
     }
-    close(client_fd);
+
+    /**
+     * Puts the incoming data from the client into buffer
+     * Now buffer data is converted to a string
+     */
+    buffer[valread] = '\0';
+    std::string request(buffer);
+    std::cout << "request received" << request << std::endl;
+
+    /**
+     * Using `istringstream` we can parse string like a file stream
+     * Line by line, parsing easily can be done
+     * 
+     * Here at section `string method, path, version` we are specifiying each line
+     * what to extract from that line section
+     * but here we are separating at a single line using  `>>`
+     * for e.g., GET /service-name HTTP/1.1
+     * -->       method, path, version
+     * 
+     */
+    std::istringstream req_stream(request);
+    std::string method, path, version;
+    req_stream >> method >> path >> version;
+
 }
 
 void HttpServer::run() {
+    init_server();
     /**
      * Creates a `kqueue` instance
      * Returns a fd that represents the queue
