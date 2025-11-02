@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 /**
+ * /src/config.cpp
  * @brief LOADS CONFIGURATION FROM THE .TXT FILE
  * 
  * `ifstream` CLASS FROM `fstream` HEADER
@@ -73,10 +74,18 @@ void Config::load(const std::string filename){
          * STORES THE VALUE IN STRINGS KEY, VALUE.
          * 
          * FOR E.G., SERVICE_NAME="MEDIA_SERVICE"
+         * IT WILL BE STORED LIKE THIS
+         * 
+         * USER_SERVICE.PORT=8080
+         * USER_SERVICE.HOST=localhost
          */
         if (std::getline(iss, key, '=') && std::getline(iss, value)) {
-        _data_[key] = value;
-    }
+            if(!section.empty()){
+                _data_[section+"."+key] = value;
+            }else{
+                _data_[key] = value;
+            }
+        }
     }
 }
 
