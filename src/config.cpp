@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cstdlib>
 
 /**
  * @brief LOADS CONFIGURATION FROM THE .TXT FILE
@@ -26,7 +27,7 @@ void Config::load(const std::string filename){
      */
     std::ifstream file(filename);
     if(!file.is_open()){
-        std::cerr << "FAILED TO OPEN FILE" << filename << "\n";
+        std::cerr << "FAILED TO OPEN FILE" << " " << filename << "\n";
         return;
     }
 
@@ -88,4 +89,17 @@ std::string Config::get(const std::string& key) const{
     auto it = _data_.find(key);
     if(it != _data_.end()) return it->second;
     return "";
+}
+
+int Config::stringToInt(const std::string& str){
+    try{
+        int value = std::stoi(str);
+        if(value <= 0){
+            throw std::invalid_argument("VALUE MUST BE POSITIVE");
+        }
+        return value;
+    }catch(const std::exception& ex){
+        std::cerr << "INVALID INTEGER" << std::endl;
+        return -1;
+    }
 }
