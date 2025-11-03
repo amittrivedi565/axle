@@ -5,6 +5,33 @@
 #include <sstream>
 #include <string>
 #include <cstdlib>
+#include <vector>
+
+/**
+ * EXPOSURE CONTROL FOR CUSTOM ROUTE CONFIGS
+ * FOR E.G., PUBLIC CAN BE ACCESSED BY ANYONE,
+ * PRIVATE WILL REQUIRE AUTHENTICATION BUT CAN BE DISABLED,
+ * PROTECTED ONLY LOCALNETWORK CAN ACCESS THAT.
+ */
+enum class Exposure{
+    PUBLIC,
+    PRIVATE,
+    PROTECTED
+};
+
+struct RouteConfig {
+    std::vector<std::string> methods;
+    Exposure exposure;
+    bool authRequired;
+};
+
+struct ServiceConfig {
+    std::string name;
+    std::string host;
+    int port;
+    Exposure defaultExposure;
+    std::map<std::string, RouteConfig> routes; // route path → config
+};
 
 /**
  * /src/config.cpp
@@ -70,6 +97,8 @@ void Config::load(const std::string filename){
         std::string key, value;
 
         /**
+         * @brief READS TEXT FROM THE CONFIG FILE, SAVES IT IN MAP<KEY,VALUE>
+         * 
          * `getline` READS FROM THE LEFT TILL ENCOUNTERS `=`, AND AFTER `=` READS TILL THE EOF.
          * STORES THE VALUE IN STRINGS KEY, VALUE.
          * 
@@ -78,6 +107,7 @@ void Config::load(const std::string filename){
          * 
          * USER_SERVICE.PORT=8080
          * USER_SERVICE.HOST=localhost
+         * 
          */
         if (std::getline(iss, key, '=') && std::getline(iss, value)) {
             if(!section.empty()){
@@ -90,7 +120,7 @@ void Config::load(const std::string filename){
 }
 
 /**
- * Get Key,Pair Value STORED IN MAP
+ * GETS <KEY, PAIR VALUE> STORED IN MAP
  * IF ITERATOR IS NOT POINTING TO THE END RETURN VALUE OF KEY
  * ELSE RETURN EMTPY STRING.
  */
@@ -100,6 +130,11 @@ std::string Config::get(const std::string& key) const{
     return "";
 }
 
+/**
+ * CONVERTS STRING TO INTEGER, PARSING VALUES
+ * MAINLY UTILIZED FOR NUMBER VALUES PRESENT IN THE
+ * CONFIGURATION FILE.
+ */
 int Config::stringToInt(const std::string& str){
     try{
         int value = std::stoi(str);
