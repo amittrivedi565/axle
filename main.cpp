@@ -4,26 +4,11 @@
 #include <map>
 #include <sstream>
 #include <vector>
-/**
- * Axle Gateway for Microservices
- * Features: Reverse Proxy, Request Routing, Load Balancing, Logging, Circuit Break.
- */
 
-/**
- * I. Workflow: Request Routing
- *
- * 1. Loads service configurations from the config.txt file — containing
- *    host, port, exposure, authentication, and custom routes.
- *
- * 2. Creates an HTTP Server (Reverse Proxy) for sending & receiving requests from clients
- *    and routing them to the correct backend service.
- *
- * 3. Returns the service's response back to the client.
- *
- * 4. Supports Dynamic Routing — e.g. '/user/:id'
- */
-
-//-----------------------------------------STRUCTS------------------------------------------------//
+enum exp{
+    PUBLIC,
+    PRIVATE
+};
 
 struct httpRequest {
     /** Service name for request redirection (/service-name/endpoint ,/order-service/orders/123). */
@@ -41,15 +26,15 @@ struct httpRequest {
     /** Request payload (JSON, text, or form data) */
     std::string body;
 
-    /** Authorization token (optional, used for authentication middleware) */
-    std::string auth_token;
+    std::string target_url;
+    std::string exposure; 
+    bool requires_auth = false;
 };
 
 struct customRoute {
     std::string r_path;   // Route path (e.g., "/api/users")
     std::string r_method; // HTTP method (e.g., "GET", "POST")
-    std::string r_exp;    // Exposure control (PUBLIC/PRIVATE/PROTECTED)
-    bool r_dynamic;       // Checks if route is dynamic or not
+    std::string r_exp;    // Exposure control (PUBLIC/PRIVATE)
     bool r_auth;          // Whether auth verification is required
 };
 
@@ -57,29 +42,29 @@ struct serviceConfig {
     std::string s_name;  // Service name
     std::string s_host;  // Hostname or IP
     int s_port;          // TCP port
-    std::string d_exp;   // Default exposure
+    std::string d_exp;   //Default exposure
     bool d_auth;         // Default auth requirement
-
-    std::map<std::string, customRoute> custom_routes; // Map of routeKey → route config
+    std::map<std::string, customRoute> custom_routes;
 };
 
-//-----------------------------------------PARSER------------------------------------------------//
+//---------------------------------------- load_config------------------------------------------------//
+
+/** Most important map, stores all gateway configuration. */
+std::map<std::string, serviceConfig> _service;
 
 std::string extract_section(const std::string &line) {
     if (line.size() < 3) return "";
-    if (line.front() == '[' && line.back() == ']') {
+    if (line.front() == '['  && line.back() == ']') {
         return line.substr(1, line.size() - 2);
     }
     return "";
 }
 
-std::map<std::string, serviceConfig> _service;
-
 /**
  * Reads configuration from 'config.txt' file, saves configuration related
  * to multiple services and routes related to service
  */
-void parser(const std::string &filename) {
+void load_config(const std::string &filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "FAILED TO OPEN FILE: " << filename << "\n";
@@ -149,35 +134,12 @@ void parser(const std::string &filename) {
         }
     }
 
-    // Save the last service
     if (!curr_service.s_name.empty()) {
         _service[curr_service.s_name] = curr_service;
     }
-
     file.close();
 }
-//------------------------------------------ROUTE_CONFIG------------------------------------------------//
 
-customRoute get_route_config(const serviceConfig& svc, const std::string& r_path, const std::string& r_method){
-    /** Construct lookup key for route. */
-    std::string route_key = r_path + ":" + r_method;
-
-    /** Find route using key. */
-    auto it = svc.custom_routes.find(route_key);
-    if (it != svc.custom_routes.end()) {
-        std::cout << "[Resolver] Custom route matched: " << route_key << "\n";
-        return it->second;
-    }
-
-    /** If not found, create route default using service defaults. */
-    std::cout << "[Resolver] Default route applied for: " << route_key << "\n";
-    customRoute def_route;
-    def_route.r_path = r_path;
-    def_route.r_method = r_method;
-    def_route.r_exp = svc.d_exp;
-    def_route.r_auth = svc.d_auth;
-    return def_route;
-}
 //------------------------------------------PATTERN_MATCHER------------------------------------------------//
 
 /** Utility for pattern_matcher */
@@ -192,8 +154,10 @@ std::vector<std::string> split_path(const std::string &path) {
     return parts;
 }
 
-/** Matches the provided path from request and saved path inside config */
-bool pattern_matcher(httpRequest& inc_req){
+/** Matches the provided path from request and saved path inside config 
+ * If no route is matched then default attributes are set to http object.
+*/
+httpRequest pattern_matcher(httpRequest& inc_req){
 
     /** Extract attributes from HTTP Request Object. */
     std::string s_name = inc_req.service_name;
@@ -204,7 +168,7 @@ bool pattern_matcher(httpRequest& inc_req){
     auto svc_it = _service.find(s_name);
     if (svc_it == _service.end()) {
         std::cerr << "SERVICE NOT FOUND: " << s_name << "\n";
-        return false;
+        return inc_req;
     }
 
     const serviceConfig &svc = svc_it->second;
@@ -255,19 +219,50 @@ bool pattern_matcher(httpRequest& inc_req){
             }   
         }
         if (matched) {
-            return true;
+            std::ostringstream final_url;
+            final_url << "http://" << svc.s_host << ":" << svc.s_port << req_path;
+            inc_req.target_url = final_url.str();
+
+            return inc_req;
         }
     }
-    return false;
+
+    std::ostringstream default_url;
+    default_url << "http://" << svc.s_host << ":" << svc.s_port << req_path;
+    inc_req.exposure = svc.d_exp;
+    inc_req.requires_auth = svc.d_auth;
+    inc_req.target_url = default_url.str();
+    return inc_req;
+}
+//------------------------------------------ROUTER------------------------------------------------//
+
+/**
+ * Send request to the required service, all attributes are provided in request object.
+ * 1. Authentication (if required)
+ * 2. Logging
+ */
+httpRequest router(httpRequest& req){
+
+    /** Logger */
+    std::cout << "[ROUTER] " << req.method << " " << req.path 
+        << " -> " << req.target_url
+        << " (Exposure=" << req.exposure 
+        << ", Auth=" << std::boolalpha << req.requires_auth << ")\n";
+    
+    /** If authentication is required then send this request to auth first
+     * if confirmation is recevied only then send request to the required service
+     * else denie access.
+     */
+    if(req.requires_auth == true){
+        /** HTTP Client for sending request to auth service */
+    }else{
+        /** Directly send to the service */
+    }
 }
 
 //------------------------------------------MAIN------------------------------------------------//
 
-
-/**
- * Important: Server() will trim the service name from url then will save the httpRequest object.
- */
 int main() {
-    parser("./config.txt");
+    load_config("./config.txt");
     return 0;
 }

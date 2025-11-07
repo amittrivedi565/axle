@@ -1,0 +1,44 @@
+# Service configuration
+[user-service]
+HOST=127.0.0.1
+PORT=5000
+DEFAULT-EXPOSURE=PUBLIC
+DEFAULT-AUTH=true
+
+# Custom configured routes
+[user-service.routes]
+PATH=/orders/:id
+METHODS=POST
+EXPOSURE=PRIVATE
+AUTH-REQUIRED=true
+
+[user-service.routes]
+PATH=/orders/:id
+METHODS=GET
+EXPOSURE=PRIVATE
+AUTH-REQUIRED=true
+
+
+configurations = {
+    "user-service" : {
+        s_name = "user-service",
+        s_host = "127.0.0.1",
+        s_port = 5000,
+        d_exp  = "PUBLIC",
+        d_auth = true,
+        custom_routes = {
+            "/orders/:id:POST" : {
+                r_path    = "/orders/:id",
+                r_method  = "POST",
+                r_exp     = "PROTECTED",   
+                r_auth    = false 
+            },
+            "/orders/:id:GET" : {
+                r_path    = "/orders/:id",
+                r_method  = "GET",
+                r_exp     = "PROTECTED",
+                r_auth    = false
+            }
+        }
+    }
+}

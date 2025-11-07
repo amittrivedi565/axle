@@ -1,21 +1,64 @@
-# AXLE Gateway Documentation
+# ⚙️ AXLE Gateway Documentation
 
-Welcome to the **API Gateway** project documentation.
+Welcome to the **Axle API Gateway** documentation.  
 
-This project implements a lightweight HTTP/1.1 API Gateway in C++ using **kqueue/epoll** event-driven architecture.
+This project implements a **lightweight HTTP/1.1 API Gateway** in **C++**, built on an **event-driven architecture** using **kqueue/epoll**.  
+It efficiently routes, proxies, and manages API requests between clients and microservices.
 
 ## Overview
 
-- **Language:** C++
-- **Architecture:** Non-blocking I/O event loop
-- **Purpose:** Acts as an entry point for routing and proxying API requests to backend microservices, rate limiting, caching, circuit-breaker.
+| Key | Description |
+|-----|--------------|
+| **Language** | C++ |
+| **Architecture** | Non-blocking I/O (event loop using kqueue/epoll) |
+| **Purpose** | Acts as an entry point for routing, proxying, rate limiting, caching, and circuit breaking for backend microservices |
 
-## Docs Navigation
 
-- [Architecture](architecture.md)
-- [HTTP Flow](http_flow.md)
-- [Build Instructions](build.md)
+## Documentation Navigation
 
-## Compile Command
-- `bin` directory will be required for compilation, after creating run this below command.
-- `g++ main.cpp -o bin/main`
+- [Architecture](architecture.md)  
+- [HTTP Flow](http_flow.md)  
+- [Build Instructions](build.md)  
+
+
+
+## Compilation
+
+Before compiling, ensure a `bin` directory exists in your project root.
+
+Run the following command to compile the gateway:
+
+```bash
+g++ main.cpp -o bin/main
+
+```
+
+## Saved configuration Structure
+
+```saved
+{
+  "user-service": {
+    "s_name": "user-service",
+    "s_host": "127.0.0.1",
+    "s_port": 5000,
+    "d_exp": "PUBLIC",          // Default exposure: PUBLIC | PRIVATE | PROTECTED
+    "d_auth": true,             // Default auth requirement for routes
+
+    "custom_routes": {
+      "/orders/:id:POST": {
+        "r_path":   "/orders/:id",
+        "r_method": "POST",
+        "r_exp":    "PROTECTED",
+        "r_auth":   false
+      },
+
+      "/orders/:id:GET": {
+        "r_path":   "/orders/:id",
+        "r_method": "GET",
+        "r_exp":    "PROTECTED",
+        "r_auth":   false
+      }
+    }
+  }
+}
+```
