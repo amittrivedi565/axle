@@ -16,3 +16,7 @@ This project implements a lightweight HTTP/1.1 API Gateway in C++ using **kqueue
 - [Architecture](architecture.md)
 - [HTTP Flow](http_flow.md)
 - [Build Instructions](build.md)
+
+## Compile Command
+- `bin` directory will be required for compilation, after creating run this below command.
+- `g++ main.cpp -o bin/main`
