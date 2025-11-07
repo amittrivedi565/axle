@@ -8,8 +8,7 @@ This project implements a lightweight HTTP/1.1 API Gateway in C++ using **kqueue
 
 - **Language:** C++
 - **Architecture:** Non-blocking I/O event loop
-- **Purpose:** Acts as an entry point for routing and proxying API requests to backend microservices, rate limiting, caching, Circuit Breaker.
-
+- **Purpose:** Acts as an entry point for routing and proxying API requests to backend microservices, rate limiting, caching, circuit-breaker.
 
 ## Docs Navigation
 
