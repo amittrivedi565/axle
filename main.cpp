@@ -5,11 +5,6 @@
 #include <sstream>
 #include <vector>
 
-enum exp{
-    PUBLIC,
-    PRIVATE
-};
-
 struct httpRequest {
     /** Service name for request redirection (/service-name/endpoint ,/order-service/orders/123). */
     std::string service_name;
@@ -28,7 +23,7 @@ struct httpRequest {
 
     std::string target_url;
     std::string exposure; 
-    bool requires_auth = false;
+    bool requires_auth;
 };
 
 struct customRoute {
@@ -47,7 +42,7 @@ struct serviceConfig {
     std::map<std::string, customRoute> custom_routes;
 };
 
-//---------------------------------------- load_config------------------------------------------------//
+//----------------------------------------LOAD_CONFIG------------------------------------------------//
 
 /** Most important map, stores all gateway configuration. */
 std::map<std::string, serviceConfig> _service;
@@ -137,7 +132,10 @@ void load_config(const std::string &filename) {
     if (!curr_service.s_name.empty()) {
         _service[curr_service.s_name] = curr_service;
     }
+
     file.close();
+
+    std::cout << "[LOAD ENV] TRUE" << std::endl;
 }
 
 //------------------------------------------PATTERN_MATCHER------------------------------------------------//
@@ -242,7 +240,6 @@ httpRequest pattern_matcher(httpRequest& inc_req){
  * 2. Logging
  */
 httpRequest router(httpRequest& req){
-
     /** Logger */
     std::cout << "[ROUTER] " << req.method << " " << req.path 
         << " -> " << req.target_url
@@ -251,7 +248,7 @@ httpRequest router(httpRequest& req){
     
     /** If authentication is required then send this request to auth first
      * if confirmation is recevied only then send request to the required service
-     * else denie access.
+     * else deny access.
      */
     if(req.requires_auth == true){
         /** HTTP Client for sending request to auth service */
@@ -260,6 +257,18 @@ httpRequest router(httpRequest& req){
     }
 }
 
+httpRequest build_http_request(const std::string& s_name, const std::string path, const std::string method, const std::map<std::string,std::string>& headers, const std::string& body = ""){
+    httpRequest req;
+    req.service_name = s_name;
+    req.method = method;
+    req.path = path;
+    req.headers = headers;
+    req.body = body;
+    req.exposure = "PUBLIC";
+    req.requires_auth = false;
+    req.target_url = ""; 
+    return req;
+}
 //------------------------------------------MAIN------------------------------------------------//
 
 int main() {

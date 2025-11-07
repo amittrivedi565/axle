@@ -18,27 +18,3 @@ METHODS=GET
 EXPOSURE=PRIVATE
 AUTH-REQUIRED=true
 
-
-configurations = {
-    "user-service" : {
-        s_name = "user-service",
-        s_host = "127.0.0.1",
-        s_port = 5000,
-        d_exp  = "PUBLIC",
-        d_auth = true,
-        custom_routes = {
-            "/orders/:id:POST" : {
-                r_path    = "/orders/:id",
-                r_method  = "POST",
-                r_exp     = "PROTECTED",   
-                r_auth    = false 
-            },
-            "/orders/:id:GET" : {
-                r_path    = "/orders/:id",
-                r_method  = "GET",
-                r_exp     = "PROTECTED",
-                r_auth    = false
-            }
-        }
-    }
-}

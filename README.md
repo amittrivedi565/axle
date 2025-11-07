@@ -1,4 +1,4 @@
-# ⚙️ AXLE Gateway Documentation
+# AXLE Gateway Documentation
 
 Welcome to the **Axle API Gateway** documentation.  
 
@@ -29,7 +29,7 @@ Before compiling, ensure a `bin` directory exists in your project root.
 Run the following command to compile the gateway:
 
 ```bash
-g++ main.cpp -o bin/main
+g++ -std=c++17 main.cpp -o bin/main
 
 ```
 
@@ -41,7 +41,7 @@ g++ main.cpp -o bin/main
     "s_name": "user-service",
     "s_host": "127.0.0.1",
     "s_port": 5000,
-    "d_exp": "PUBLIC",          // Default exposure: PUBLIC | PRIVATE | PROTECTED
+    "d_exp": "PUBLIC",          // Default exposure: PUBLIC | PRIVATE
     "d_auth": true,             // Default auth requirement for routes
 
     "custom_routes": {
